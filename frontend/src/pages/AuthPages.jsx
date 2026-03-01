@@ -101,7 +101,7 @@ export function LoginPage() {
           By signing in, you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
         </p>
 
-        <div className="auth-divider">New to PhonePlace Kenya?</div>
+        <div className="auth-divider">New to Amazon Kenya?</div>
 
         <Link to="/register" style={{ display: 'block' }}>
           <button className="btn-amz-secondary" type="button" style={{ width: '100%' }}>
@@ -116,7 +116,7 @@ export function LoginPage() {
           <a href="/terms">Terms</a>
           <a href="/privacy">Privacy</a>
         </div>
-        <p>© {new Date().getFullYear()} PhonePlace Kenya</p>
+        <p>© {new Date().getFullYear()} Amazon Kenya</p>
       </div>
     </div>
   );
@@ -156,7 +156,7 @@ export function RegisterPage() {
     try {
       const { data } = await register(form);
       loginUser(data.user, data.tokens);
-      showToast('Account created! Welcome to PhonePlace Kenya!', 'success');
+      showToast('Account created! Welcome to Amazon Kenya!', 'success');
       navigate('/');
     } catch (e) {
       const data = e.response?.data || {};
@@ -228,7 +228,7 @@ export function RegisterPage() {
           </p>
 
           <button type="submit" className="btn-amz-primary" disabled={loading}>
-            {loading ? <><i className="bi bi-hourglass-split" /> Creating account...</> : 'Create your PhonePlace account'}
+            {loading ? <><i className="bi bi-hourglass-split" /> Creating account...</> : 'Create your Amazon account'}
           </button>
         </form>
 
@@ -247,7 +247,7 @@ export function RegisterPage() {
           <a href="/terms">Terms</a>
           <a href="/privacy">Privacy</a>
         </div>
-        <p>© {new Date().getFullYear()} PhonePlace Kenya</p>
+        <p>© {new Date().getFullYear()} Amazon Kenya</p>
       </div>
     </div>
   );

@@ -61,7 +61,7 @@ export default function RegisterPage() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
             <span style={{ fontWeight: 900, fontSize: '1.5rem', color: '#111' }}>
-              PhonePlace<span style={{ color: 'var(--amz-orange)' }}>KE</span>
+              Amazon<span style={{ color: 'var(--amz-orange)' }}>KE</span>
             </span>
           </Link>
         </div>

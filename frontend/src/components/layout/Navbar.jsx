@@ -45,7 +45,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="navbar-logo">
           <i className="bi bi-phone-fill navbar-logo-icon" />
-          <span>PhonePlace</span>
+          <span>Amazon</span>
           <span className="navbar-logo-ke">KE</span>
         </Link>
 

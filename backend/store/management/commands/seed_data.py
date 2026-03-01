@@ -1,5 +1,5 @@
 """
-Management command to seed the database with realistic PhonePlace Kenya data.
+Management command to seed the database with realistic Amazon Kenya data.
 
 Usage:
     python manage.py seed_data
@@ -51,7 +51,7 @@ def pick_image(subfolder=''):
 
 
 class Command(BaseCommand):
-    help = 'Seed the database with PhonePlace Kenya sample data'
+    help = 'Seed the database with Amazon Kenya sample data'
 
     def add_arguments(self, parser):
         parser.add_argument('--clear', action='store_true', help='Clear existing data before seeding')
@@ -62,7 +62,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('Clearing existing data...'))
             self._clear_data()
 
-        self.stdout.write(self.style.HTTP_INFO('Seeding PhonePlace Kenya data...\n'))
+        self.stdout.write(self.style.HTTP_INFO('Seeding Amazon Kenya data...\n'))
 
         self._seed_exchange_rates()
         country, counties = self._seed_geography()
@@ -765,10 +765,10 @@ class Command(BaseCommand):
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser(
                 username='admin',
-                email='admin@phoneplace.ke',
+                email='admin@Amazon.ke',
                 password='admin1234',
                 first_name='Admin',
-                last_name='PhonePlace',
+                last_name='Amazon',
             )
             self.stdout.write('  ✓ Superuser created → admin / admin1234')
         else:

@@ -14,7 +14,7 @@ export default function Footer() {
         <div className="footer-grid amz-container">
           <div className="footer-col">
             <div className="footer-col-title">Get to Know Us</div>
-            <Link to="/about">About PhonePlace Kenya</Link>
+            <Link to="/about">About Amazon Kenya</Link>
             <Link to="/careers">Careers</Link>
             <Link to="/press">Press Releases</Link>
             <Link to="/blog">Tech Blog</Link>
@@ -50,7 +50,7 @@ export default function Footer() {
       <div className="footer-bottom">
         <div className="footer-bottom-logo">
           <i className="bi bi-phone-fill" style={{ color: '#ff9900', marginRight: 6 }} />
-          PhonePlace Kenya
+          Amazon Kenya
         </div>
         <div className="footer-links">
           <Link to="/privacy">Privacy Notice</Link>
@@ -59,7 +59,7 @@ export default function Footer() {
           <Link to="/cookies">Cookies Notice</Link>
           <Link to="/ads">Interest-Based Ads</Link>
         </div>
-        <p>© {new Date().getFullYear()} PhonePlace Kenya. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Amazon Kenya. All rights reserved.</p>
         <p style={{ marginTop: 4 }}>
           <i className="bi bi-geo-alt-fill" style={{ marginRight: 4 }} />
           Nairobi, Kenya &nbsp;|&nbsp;

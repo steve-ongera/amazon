@@ -141,7 +141,7 @@ export function OrderDetailPage() {
             <i className="bi bi-check-circle-fill" style={{ fontSize: '1.4rem' }} />
             <div>
               <strong>Order placed successfully!</strong>
-              <div style={{ fontSize: '.82rem' }}>Thank you for shopping with PhonePlace Kenya. Order #{order.order_number}</div>
+              <div style={{ fontSize: '.82rem' }}>Thank you for shopping with Amazon Kenya. Order #{order.order_number}</div>
             </div>
           </div>
         )}

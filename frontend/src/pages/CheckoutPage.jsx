@@ -144,7 +144,7 @@ export default function CheckoutPage() {
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: 'var(--text-primary)' }}>
             <i className="bi bi-phone-fill" style={{ color: 'var(--amz-orange)', fontSize: '1.4rem' }} />
-            <strong style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)' }}>PhonePlace Kenya</strong>
+            <strong style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)' }}>Amazon Kenya</strong>
           </Link>
           <div style={{ flex: 1, textAlign: 'center' }}>
             <h1 style={{ fontSize: '1rem', fontWeight: 700 }}>Secure Checkout</h1>
@@ -412,7 +412,7 @@ export default function CheckoutPage() {
                   </button>
                 </div>
                 <p style={{ fontSize: '.72rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
-                  By placing your order, you agree to PhonePlace Kenya's <a href="/terms">Terms of Service</a>.
+                  By placing your order, you agree to Amazon Kenya's <a href="/terms">Terms of Service</a>.
                 </p>
               </>
             )}

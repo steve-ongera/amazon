@@ -34,7 +34,7 @@ export default function LoginPage() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
             <span style={{ fontWeight: 900, fontSize: '1.5rem', color: '#111' }}>
-              PhonePlace<span style={{ color: 'var(--amz-orange)' }}>KE</span>
+              Amazon<span style={{ color: 'var(--amz-orange)' }}>KE</span>
             </span>
           </Link>
         </div>
@@ -93,7 +93,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 20, padding: '16px', border: '1px solid #ddd', borderRadius: 8, background: '#fff' }}>
-          <span style={{ fontSize: '.88rem' }}>New to PhonePlaceKE? </span>
+          <span style={{ fontSize: '.88rem' }}>New to AmazonKE? </span>
           <Link to="/register" state={{ from: location.state?.from }} style={{ color: 'var(--amz-teal)', fontWeight: 700, fontSize: '.88rem' }}>
             Create your account
           </Link>

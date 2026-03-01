@@ -1,4 +1,4 @@
-# PhonePlace Kenya — Backend API
+# Amazon Kenya — Backend API
 
 A full-featured Django REST Framework e-commerce backend for a Kenyan phone & electronics store, with M-Pesa Daraja STK Push integration, JWT authentication, cart management, wishlists, and order tracking.
 
@@ -21,7 +21,7 @@ A full-featured Django REST Framework e-commerce backend for a Kenyan phone & el
 ## Project Structure
 
 ```
-PhonePlace_Kenya/
+Amazon_Kenya/
 ├── backend/                        # Django project root
 │   ├── backend/                    # Project configuration package
 │   │   ├── __init__.py
@@ -93,8 +93,8 @@ PhonePlace_Kenya/
 ### 1. Clone and create a virtual environment
 
 ```bash
-git clone https://github.com/youruser/phoneplace-kenya.git
-cd phoneplace-kenya/backend
+git clone https://github.com/youruser/Amazon-kenya.git
+cd Amazon-kenya/backend
 python -m venv venv
 
 # Windows
@@ -185,7 +185,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_HOST_USER=you@gmail.com
 EMAIL_HOST_PASSWORD=your_app_password   # Gmail App Password (16 chars, no spaces)
-DEFAULT_FROM_EMAIL="PhonePlace Kenya <you@gmail.com>"
+DEFAULT_FROM_EMAIL="Amazon Kenya <you@gmail.com>"
 ```
 
 **Important:** `settings.py` must have these two lines at the very top (before any `os.environ.get()` calls):
@@ -551,4 +551,4 @@ urlpatterns = [
 
 ## License
 
-MIT © PhonePlace Kenya
+MIT © Amazon Kenya
