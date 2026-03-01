@@ -5,7 +5,9 @@ export default function Footer() {
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
-    <footer className="footer">
+    // ✅ width: 100% + flexShrink: 0 ensures footer is always full-width
+    // and never gets squeezed by the page content above it
+    <footer className="footer" style={{ width: '100%', flexShrink: 0 }}>
       <div className="footer-back-top" onClick={scrollTop}>
         Back to top
       </div>
