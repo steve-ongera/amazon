@@ -59,20 +59,26 @@ export const getCategory    = (slug)           => api.get(`/categories/${slug}/`
 export const getBrands      = (params)         => api.get('/brands/', { params });
 export const getBrand       = (slug)           => api.get(`/brands/${slug}/`);
 
-export const getProducts    = (params)         => api.get('/products/', { params });
-export const getProduct     = (slug)           => api.get(`/products/${slug}/`);
-export const searchProducts = (q, params)      => api.get('/products/', { params: { ...params, search: q } });
-export const getProductsByCategory = (slug, params) =>
-  api.get('/products/', { params: { ...params, category__slug: slug } });
+export const getProducts            = (params)        => api.get('/products/', { params });
+export const getProduct             = (slug)          => api.get(`/products/${slug}/`);
+export const getRelated             = (slug)          => api.get(`/products/${slug}/related/`);         // ✅ ADDED
+export const searchProducts         = (q, params)     => api.get('/products/search/', { params: { ...params, q } });  // ✅ FIXED: uses /search/ action
+export const getProductsByCategory  = (slug, params)  => api.get('/products/by_category/', { params: { ...params, slug } }); // ✅ FIXED: uses /by_category/ action
+export const getFeaturedProducts    = ()              => api.get('/products/featured/');
+export const getBestSellers         = ()              => api.get('/products/best_sellers/');
+export const getNewArrivals         = ()              => api.get('/products/new_arrivals/');
+export const getAmazonChoice        = ()              => api.get('/products/amazon_choice/');
 
 export const getBanners     = (params)         => api.get('/banners/', { params });
+export const getHeroBanners = ()               => api.get('/banners/hero/');
+export const getPromoBanners= ()               => api.get('/banners/promo/');
 
 // ── Cart ──────────────────────────────────────────────────
 export const getCart        = ()               => api.get('/cart/');
-export const addToCart      = (data)           => api.post('/cart/add_item/', data);
-export const updateCartItem = (itemId, qty)    => api.patch(`/cart/update_item/`, { item_id: itemId, quantity: qty });
-export const removeFromCart = (itemId)         => api.post('/cart/remove_item/', { item_id: itemId });
-export const clearCart      = ()               => api.post('/cart/clear/');
+export const addToCart      = (data)           => api.post('/cart/', data);                    // ✅ FIXED: POST /cart/ maps to CartViewSet.create()
+export const updateCartItem = (itemId, qty)    => api.patch('/cart/update_item/', { item_id: itemId, quantity: qty });
+export const removeFromCart = (itemId)         => api.delete(`/cart/${itemId}/`);              // ✅ FIXED: DELETE /cart/{pk}/ maps to CartViewSet.destroy()
+export const clearCart      = ()               => api.delete('/cart/clear/');                  // ✅ FIXED: uses DELETE method
 
 // ── Wishlist ──────────────────────────────────────────────
 export const getWishlist         = ()          => api.get('/wishlist/');
@@ -98,11 +104,12 @@ export const paypalCreateOrder  = (data)       => api.post('/payments/paypal/cre
 export const paypalCapture      = (data)       => api.post('/payments/paypal/capture/', data);
 
 // ── Utilities ─────────────────────────────────────────────
-export const validateCoupon     = (code, amount) => api.post('/coupons/validate/', { code, amount });
+export const validateCoupon     = (code, cartTotal, currency) =>
+  api.post('/coupons/validate/', { code, cart_total: cartTotal, currency });  // ✅ FIXED: matches CouponValidateView params
 export const getRecentlyViewed  = ()             => api.get('/recently-viewed/');
 export const getExchangeRates   = ()             => api.get('/exchange-rates/');
 
 // ── Geography ─────────────────────────────────────────────
 export const getCountries       = ()           => api.get('/countries/');
-export const getCounties        = ()           => api.get('/counties/');
+export const getCounties        = (params)     => api.get('/counties/', { params });
 export const getPickupStations  = (params)     => api.get('/pickup-stations/', { params });

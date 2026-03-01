@@ -1,4 +1,3 @@
-// src/pages/StorePage.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { getProducts, getProductsByCategory, searchProducts, getCategories, getBrands } from '../api';
@@ -6,10 +5,10 @@ import { Spinner, EmptyState } from '../components/common/index.jsx';
 import ProductCard from '../components/common/ProductCard';
 
 const SORT_OPTIONS = [
-  { value: '-created_at', label: 'Newest First' },
-  { value: 'price_kes', label: 'Price: Low to High' },
-  { value: '-price_kes', label: 'Price: High to Low' },
-  { value: '-average_rating', label: 'Avg. Customer Review' },
+  { value: '-created_at',    label: 'Newest First' },
+  { value: 'price_kes',      label: 'Price: Low to High' },
+  { value: '-price_kes',     label: 'Price: High to Low' },
+  { value: '-average_rating',label: 'Avg. Customer Review' },
 ];
 
 export default function StorePage() {
@@ -19,16 +18,16 @@ export default function StorePage() {
   const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const category = searchParams.get('category') || '';
-  const q = searchParams.get('q') || '';
-  const filter = searchParams.get('filter') || '';
-  const sort = searchParams.get('sort') || '-created_at';
-  const page = parseInt(searchParams.get('page') || '1', 10);
+  const category      = searchParams.get('category') || '';
+  const q             = searchParams.get('q') || '';
+  const filter        = searchParams.get('filter') || '';
+  const sort          = searchParams.get('sort') || '-created_at';
+  const page          = parseInt(searchParams.get('page') || '1', 10);
   const selectedBrands = searchParams.getAll('brand');
-  const minPrice = searchParams.get('min_price') || '';
-  const maxPrice = searchParams.get('max_price') || '';
+  const minPrice      = searchParams.get('min_price') || '';
+  const maxPrice      = searchParams.get('max_price') || '';
 
   const updateParam = (key, val) => {
     const p = new URLSearchParams(searchParams);
@@ -50,13 +49,11 @@ export default function StorePage() {
     setSearchParams(p);
   };
 
-  // Load side data
   useEffect(() => {
     getCategories().then(r => setCategories(r.data.results || r.data)).catch(() => {});
     getBrands().then(r => setBrands(r.data.results || r.data)).catch(() => {});
   }, []);
 
-  // Load products
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -68,8 +65,10 @@ export default function StorePage() {
       if (q) {
         res = await searchProducts(q, params);
       } else if (category) {
-        const brandList = selectedBrands;
-        res = await getProductsByCategory(category, { ...params, ...(brandList.length ? { brand: brandList.join(',') } : {}) });
+        res = await getProductsByCategory(category, {
+          ...params,
+          ...(selectedBrands.length ? { brand: selectedBrands.join(',') } : {}),
+        });
       } else {
         if (filter === 'best_sellers') params.is_best_seller = true;
         else if (filter === 'new_arrivals') params.is_new_arrival = true;
@@ -93,18 +92,133 @@ export default function StorePage() {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  // Close drawer on resize to desktop
+  useEffect(() => {
+    const handler = () => { if (window.innerWidth >= 900) setDrawerOpen(false); };
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   const pageCount = Math.ceil(pagination.count / 20);
 
-  const pageTitle = q ? `Results for "${q}"` :
-    category ? category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) :
+  const activeFilterCount = [
+    category, filter, minPrice, maxPrice, ...selectedBrands
+  ].filter(Boolean).length;
+
+  const pageTitle = q         ? `Results for "${q}"` :
+    category                  ? category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) :
     filter === 'best_sellers' ? '🔥 Best Sellers' :
     filter === 'new_arrivals' ? '✨ New Arrivals' :
-    filter === 'featured' ? 'Featured Products' :
+    filter === 'featured'     ? '⭐ Featured Products' :
     'All Products';
+
+  const FilterContent = () => (
+    <>
+      <div className="filter-drawer-close">
+        <h3>Filters {activeFilterCount > 0 && `(${activeFilterCount})`}</h3>
+        <button onClick={() => setDrawerOpen(false)} aria-label="Close filters">
+          <i className="bi bi-x-lg" />
+        </button>
+      </div>
+
+      {/* Categories */}
+      <div className="filter-section">
+        <div className="filter-title">Department</div>
+        <label className="filter-option">
+          <input type="radio" name="cat" checked={!category} onChange={() => { updateParam('category', ''); setDrawerOpen(false); }} />
+          All Categories
+        </label>
+        {categories.flatMap(c => [c, ...(c.subcategories || [])]).map(c => (
+          <label key={c.id} className="filter-option">
+            <input type="radio" name="cat" checked={category === c.slug} onChange={() => { updateParam('category', c.slug); setDrawerOpen(false); }} />
+            {c.name}
+            {c.product_count !== undefined && (
+              <span style={{ color: 'var(--text-muted)', marginLeft: 'auto', fontSize: '.72rem' }}>
+                {c.product_count}
+              </span>
+            )}
+          </label>
+        ))}
+      </div>
+
+      {/* Brands */}
+      {brands.length > 0 && (
+        <div className="filter-section">
+          <div className="filter-title">Brand</div>
+          {brands.slice(0, 12).map(b => (
+            <label key={b.id} className="filter-option">
+              <input type="checkbox" checked={selectedBrands.includes(b.slug)} onChange={() => toggleBrand(b.slug)} />
+              {b.name}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {/* Price Range */}
+      <div className="filter-section">
+        <div className="filter-title">Price (KES)</div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+          <input
+            type="number" placeholder="Min" value={minPrice}
+            className="form-control" style={{ padding: '5px 8px', width: 80 }}
+            onChange={e => updateParam('min_price', e.target.value)}
+          />
+          <span style={{ color: 'var(--text-muted)' }}>–</span>
+          <input
+            type="number" placeholder="Max" value={maxPrice}
+            className="form-control" style={{ padding: '5px 8px', width: 80 }}
+            onChange={e => updateParam('max_price', e.target.value)}
+          />
+        </div>
+        {[
+          ['0',     '5000',  'Under KES 5,000'],
+          ['5000',  '15000', 'KES 5,000 – 15,000'],
+          ['15000', '50000', 'KES 15,000 – 50,000'],
+          ['50000', '',      'Above KES 50,000'],
+        ].map(([min, max, label]) => (
+          <label key={label} className="filter-option">
+            <input
+              type="radio" name="price_range"
+              checked={minPrice === min && maxPrice === max}
+              onChange={() => { updateParam('min_price', min); updateParam('max_price', max); }}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+
+      {/* Quick Filters */}
+      <div className="filter-section">
+        <div className="filter-title">Quick Filters</div>
+        {[
+          ['best_sellers', '🔥 Best Sellers'],
+          ['new_arrivals', '✨ New Arrivals'],
+          ['featured',     '⭐ Featured'],
+        ].map(([val, label]) => (
+          <label key={val} className="filter-option">
+            <input type="radio" name="qfilter" checked={filter === val} onChange={() => updateParam('filter', val)} />
+            {label}
+          </label>
+        ))}
+      </div>
+
+      {/* Clear all */}
+      {activeFilterCount > 0 && (
+        <Link
+          to="/store"
+          style={{ display: 'block', textAlign: 'center', fontSize: '.82rem', color: 'var(--amz-link)', marginTop: 8, padding: '6px 0' }}
+          onClick={() => setDrawerOpen(false)}
+        >
+          <i className="bi bi-x-circle" style={{ marginRight: 4 }} />Clear all filters
+        </Link>
+      )}
+    </>
+  );
 
   return (
     <div className="page-wrapper">
       <div className="amz-container" style={{ padding: '16px' }}>
+
         {/* Breadcrumb */}
         <nav className="breadcrumb">
           <Link to="/">Home</Link>
@@ -113,110 +227,65 @@ export default function StorePage() {
         </nav>
 
         <div className="store-layout">
-          {/* ── Filters Sidebar ──────────────────────────── */}
+
+          {/* ── Mobile Overlay ──────────────────────── */}
+          <div className={`filter-overlay ${drawerOpen ? 'open' : ''}`} onClick={() => setDrawerOpen(false)} />
+
+          {/* ── Sidebar ─────────────────────────────── */}
           <aside>
-            <button
-              className="btn-amz-secondary"
-              style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}
-              onClick={() => setShowFilters(v => !v)}
-            >
-              <i className="bi bi-funnel" /> Filters
-              <i className={`bi bi-chevron-${showFilters ? 'up' : 'down'}`} style={{ marginLeft: 'auto' }} />
+            {/* Mobile toggle */}
+            <button className="filter-toggle-btn" onClick={() => setDrawerOpen(true)}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <i className="bi bi-funnel-fill" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span style={{
+                    background: 'var(--amz-orange)', color: '#111',
+                    borderRadius: '50%', width: 18, height: 18,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '.65rem', fontWeight: 800
+                  }}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </span>
+              <i className="bi bi-chevron-right" />
             </button>
 
-            <div className="filters-sidebar" style={{ display: showFilters || window.innerWidth >= 768 ? 'block' : 'none' }}>
-              {/* Categories */}
-              <div className="filter-section">
-                <div className="filter-title">Department</div>
-                <label className="filter-option">
-                  <input type="radio" name="cat" checked={!category} onChange={() => updateParam('category', '')} />
-                  All Categories
-                </label>
-                {categories.flatMap(c => [c, ...(c.subcategories || [])]).map(c => (
-                  <label key={c.id} className="filter-option">
-                    <input type="radio" name="cat" checked={category === c.slug} onChange={() => updateParam('category', c.slug)} />
-                    {c.name} {c.product_count !== undefined && <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>({c.product_count})</span>}
-                  </label>
-                ))}
-              </div>
-
-              {/* Brands */}
-              {brands.length > 0 && (
-                <div className="filter-section">
-                  <div className="filter-title">Brand</div>
-                  {brands.slice(0, 12).map(b => (
-                    <label key={b.id} className="filter-option">
-                      <input type="checkbox" checked={selectedBrands.includes(b.slug)} onChange={() => toggleBrand(b.slug)} />
-                      {b.name}
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              {/* Price Range */}
-              <div className="filter-section">
-                <div className="filter-title">Price (KES)</div>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="number" placeholder="Min" value={minPrice}
-                    className="form-control" style={{ padding: '5px 8px', width: 80 }}
-                    onChange={e => updateParam('min_price', e.target.value)}
-                  />
-                  <span>–</span>
-                  <input
-                    type="number" placeholder="Max" value={maxPrice}
-                    className="form-control" style={{ padding: '5px 8px', width: 80 }}
-                    onChange={e => updateParam('max_price', e.target.value)}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
-                  {[
-                    ['0', '5000', 'Under KES 5,000'],
-                    ['5000', '15000', 'KES 5,000 – 15,000'],
-                    ['15000', '50000', 'KES 15,000 – 50,000'],
-                    ['50000', '', 'Above KES 50,000'],
-                  ].map(([min, max, label]) => (
-                    <label key={label} className="filter-option">
-                      <input
-                        type="radio" name="price_range"
-                        checked={minPrice === min && maxPrice === max}
-                        onChange={() => { updateParam('min_price', min); updateParam('max_price', max); }}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick Filters */}
-              <div className="filter-section">
-                <div className="filter-title">Quick Filters</div>
-                {[
-                  ['best_sellers', '🔥 Best Sellers'],
-                  ['new_arrivals', '✨ New Arrivals'],
-                  ['featured', '⭐ Featured'],
-                ].map(([val, label]) => (
-                  <label key={val} className="filter-option">
-                    <input type="radio" name="filter" checked={filter === val} onChange={() => updateParam('filter', val)} />
-                    {label}
-                  </label>
-                ))}
-              </div>
+            {/* Desktop sidebar */}
+            <div className="filters-sidebar">
+              <FilterContent />
             </div>
+
+            {/* Mobile drawer */}
+            {drawerOpen && (
+              <div className="filters-sidebar drawer">
+                <FilterContent />
+              </div>
+            )}
           </aside>
 
-          {/* ── Product Listing ──────────────────────────── */}
+          {/* ── Product Listing ──────────────────────── */}
           <main>
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', flexWrap: 'wrap',
+              gap: 8, marginBottom: 14,
+              padding: '10px 14px',
+              background: '#fff', borderRadius: 'var(--radius-sm)',
+              border: '1px solid #e3e6e6'
+            }}>
               <div>
-                <h1 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 2 }}>{pageTitle}</h1>
-                <div className="search-results-header">
-                  {!loading && <span><strong>{pagination.count}</strong> results</span>}
-                </div>
+                <h1 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>{pageTitle}</h1>
+                {!loading && (
+                  <div className="search-results-header" style={{ marginBottom: 0, paddingBottom: 0 }}>
+                    <strong>{pagination.count.toLocaleString()}</strong> results
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <label style={{ fontSize: '.82rem', color: 'var(--text-muted)' }}>Sort by:</label>
+                <label style={{ fontSize: '.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sort by:</label>
                 <select
                   className="form-control"
                   style={{ width: 'auto', padding: '5px 10px', fontSize: '.82rem' }}
@@ -228,6 +297,7 @@ export default function StorePage() {
               </div>
             </div>
 
+            {/* Products */}
             {loading ? (
               <Spinner />
             ) : products.length === 0 ? (
@@ -236,8 +306,8 @@ export default function StorePage() {
                 title="No products found"
                 text="Try adjusting your filters or search term"
                 action={
-                  <Link to="/store" className="btn-amz" style={{ textDecoration: 'none', marginTop: 8, display: 'inline-flex' }}>
-                    Clear Filters
+                  <Link to="/store" className="btn-amz-orange" style={{ textDecoration: 'none', marginTop: 8, display: 'inline-flex', padding: '8px 20px', borderRadius: 4 }}>
+                    <i className="bi bi-x-circle" style={{ marginRight: 6 }} /> Clear Filters
                   </Link>
                 }
               />
@@ -250,31 +320,22 @@ export default function StorePage() {
                 {/* Pagination */}
                 {pageCount > 1 && (
                   <div className="pagination">
-                    <button
-                      className="page-btn"
-                      disabled={page === 1}
-                      onClick={() => updateParam('page', String(page - 1))}
-                    >
+                    <button className="page-btn" disabled={page === 1} onClick={() => updateParam('page', String(page - 1))}>
                       <i className="bi bi-chevron-left" />
                     </button>
-                    {[...Array(Math.min(pageCount, 7))].map((_, i) => {
-                      const p = i + 1;
-                      return (
-                        <button
-                          key={p}
-                          className={`page-btn ${p === page ? 'active' : ''}`}
-                          onClick={() => updateParam('page', String(p))}
-                        >
-                          {p}
-                        </button>
+                    {(() => {
+                      const pages = [];
+                      const start = Math.max(1, page - 3);
+                      const end = Math.min(pageCount, page + 3);
+                      if (start > 1) { pages.push(1); if (start > 2) pages.push('...'); }
+                      for (let i = start; i <= end; i++) pages.push(i);
+                      if (end < pageCount) { if (end < pageCount - 1) pages.push('...'); pages.push(pageCount); }
+                      return pages.map((p, i) => p === '...'
+                        ? <span key={`e${i}`} style={{ padding: '0 8px', color: 'var(--text-muted)' }}>…</span>
+                        : <button key={p} className={`page-btn ${p === page ? 'active' : ''}`} onClick={() => updateParam('page', String(p))}>{p}</button>
                       );
-                    })}
-                    {pageCount > 7 && <span style={{ padding: '0 8px' }}>...</span>}
-                    <button
-                      className="page-btn"
-                      disabled={!pagination.next}
-                      onClick={() => updateParam('page', String(page + 1))}
-                    >
+                    })()}
+                    <button className="page-btn" disabled={!pagination.next} onClick={() => updateParam('page', String(page + 1))}>
                       <i className="bi bi-chevron-right" />
                     </button>
                   </div>

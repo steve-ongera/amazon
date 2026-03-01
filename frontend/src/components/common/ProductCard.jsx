@@ -1,4 +1,3 @@
-// src/components/common/ProductCard.jsx
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../hooks/useWishlist';
@@ -24,26 +23,23 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <Link to={`/product/${product.slug}`} className="product-card" style={{ textDecoration: 'none' }}>
-      {/* Wishlist button */}
+    <Link to={`/product/${product.slug}`} className="product-card">
+
+      {/* ── Discount ribbon ─────────────────────────── */}
+      {product.discount_percent > 0 && (
+        <div className="product-card-discount">-{product.discount_percent}%</div>
+      )}
+
+      {/* ── Wishlist button ─────────────────────────── */}
       <button
+        className={`product-card-wishlist ${isWishlisted ? 'wishlisted' : ''}`}
         onClick={handleWishlist}
-        style={{
-          position: 'absolute', top: 8, right: 8,
-          background: 'rgba(255,255,255,.85)', border: 'none',
-          borderRadius: '50%', width: 30, height: 30,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', zIndex: 1,
-          boxShadow: '0 1px 3px rgba(0,0,0,.15)',
-          color: isWishlisted ? '#e74c3c' : '#aaa',
-          fontSize: '1rem',
-        }}
-        aria-label="Wishlist"
+        aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
       >
         <i className={`bi ${isWishlisted ? 'bi-heart-fill' : 'bi-heart'}`} />
       </button>
 
-      {/* Image */}
+      {/* ── Image ───────────────────────────────────── */}
       <div className="product-card-img">
         {imgSrc ? (
           <img src={imgSrc} alt={product.name} loading="lazy" />
@@ -52,59 +48,72 @@ export default function ProductCard({ product }) {
         )}
       </div>
 
-      {/* Body */}
+      {/* ── Body ────────────────────────────────────── */}
       <div className="product-card-body">
+
         {/* Badges */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 3 }}>
+        <div className="product-card-badges">
           {product.is_amazon_choice && <span className="badge badge-choice">#1 Choice</span>}
-          {product.is_best_seller && <span className="badge badge-hot">Best Seller</span>}
+          {product.is_best_seller && <span className="badge badge-hot">🔥 Best Seller</span>}
           {product.is_new_arrival && <span className="badge badge-new">New</span>}
-          {product.is_prime && <span className="badge badge-prime"><i className="bi bi-lightning-fill" /> Prime</span>}
+          {product.is_prime && (
+            <span className="badge badge-prime">
+              <i className="bi bi-lightning-fill" style={{ marginRight: 2 }} />Prime
+            </span>
+          )}
         </div>
 
         {/* Brand */}
-        <div className="product-card-brand">{product.brand_name}</div>
+        {product.brand_name && (
+          <div className="product-card-brand">{product.brand_name}</div>
+        )}
 
         {/* Title */}
         <div className="product-card-title">{product.name}</div>
 
         {/* Rating */}
         {product.average_rating > 0 && (
-          <StarRating rating={product.average_rating} count={product.review_count} />
+          <div className="product-card-rating">
+            <StarRating rating={product.average_rating} count={product.review_count} />
+          </div>
         )}
 
         {/* Price */}
-        <PriceBlock
-          priceKes={product.effective_price_kes}
-          priceUsd={product.effective_price_usd}
-          oldKes={product.sale_price_kes ? product.price_kes : null}
-          discount={product.discount_percent}
-        />
+        <div className="product-card-price">
+          <PriceBlock
+            priceKes={product.effective_price_kes}
+            priceUsd={product.effective_price_usd}
+            oldKes={product.sale_price_kes ? product.price_kes : null}
+            discount={product.discount_percent}
+          />
+        </div>
 
         {/* Coupon */}
         {product.has_coupon && product.coupon_text && (
-          <span className="badge badge-coupon" style={{ marginTop: 3 }}>
-            <i className="bi bi-tag-fill" style={{ marginRight: 3 }} />
-            {product.coupon_text}
-          </span>
+          <div>
+            <span className="badge badge-coupon">
+              <i className="bi bi-tag-fill" style={{ marginRight: 3 }} />
+              {product.coupon_text}
+            </span>
+          </div>
         )}
 
-        {/* Stock */}
-        {!product.in_stock && (
-          <div style={{ fontSize: '.72rem', color: '#b12704', marginTop: 2 }}>Out of Stock</div>
-        )}
+        <div className="product-card-spacer" />
 
-        {/* Add to cart */}
-        {product.in_stock && (
-          <button
-            className="btn-add-cart"
-            onClick={handleAddCart}
-            style={{ marginTop: 8 }}
-          >
-            <i className="bi bi-cart-plus" /> Add to Cart
-          </button>
-        )}
+        {/* Footer: stock + add to cart */}
+        <div className="product-card-footer">
+          {!product.in_stock ? (
+            <div className="product-card-oos">
+              <i className="bi bi-x-circle" style={{ marginRight: 4 }} />Out of Stock
+            </div>
+          ) : (
+            <button className="btn-add-cart" onClick={handleAddCart}>
+              <i className="bi bi-cart-plus" /> Add to Cart
+            </button>
+          )}
+        </div>
       </div>
+
     </Link>
   );
 }
