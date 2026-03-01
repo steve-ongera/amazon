@@ -8,229 +8,495 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ✅ Fields match RegisterSerializer exactly:
+  // username, email, first_name, last_name, password, password2, phone
   const [form, setForm] = useState({
-    first_name: '', last_name: '', username: '',
-    email: '', phone: '', password: '', confirm_password: '',
+    first_name: '',
+    last_name: '',
+    username: '',
+    email: '',
+    phone: '',
+    password: '',
+    password2: '',       // ✅ FIX: backend expects `password2`, not `confirm_password`
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [step, setStep] = useState(1); // 2-step form for better UX
 
-  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })); };
+  const set = (k, v) => {
+    setForm(f => ({ ...f, [k]: v }));
+    setErrors(e => ({ ...e, [k]: '', non_field_errors: '' }));
+  };
 
-  const validate = () => {
+  // Client-side validation mirrors backend RegisterSerializer
+  const validateStep1 = () => {
     const e = {};
     if (!form.first_name.trim()) e.first_name = 'First name is required';
+    if (!form.last_name.trim())  e.last_name  = 'Last name is required';
     if (!form.username.trim())   e.username   = 'Username is required';
-    if (!form.email.trim())      e.email      = 'Email is required';
-    if (form.password.length < 8) e.password  = 'Minimum 8 characters';
-    if (form.password !== form.confirm_password) e.confirm_password = 'Passwords do not match';
+    if (!form.email.trim())      e.email      = 'Email address is required';
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Enter a valid email address';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
+  const validateStep2 = () => {
+    const e = {};
+    if (form.password.length < 8)        e.password  = 'Password must be at least 8 characters';
+    if (form.password !== form.password2) e.password2 = 'Passwords do not match';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleNext = (e) => {
+    e.preventDefault();
+    if (validateStep1()) setStep(2);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validateStep2()) return;
     setLoading(true);
     try {
-      await registerUser(form);
+      // ✅ Send exact fields RegisterSerializer expects
+      await registerUser({
+        first_name:  form.first_name,
+        last_name:   form.last_name,
+        username:    form.username,
+        email:       form.email,
+        phone:       form.phone,
+        password:    form.password,
+        password2:   form.password2,
+      });
       navigate('/');
     } catch (err) {
       const data = err?.response?.data || {};
+      // Map backend field errors back to form fields
       const mapped = {};
-      Object.entries(data).forEach(([k, v]) => { mapped[k] = Array.isArray(v) ? v[0] : v; });
+      Object.entries(data).forEach(([k, v]) => {
+        mapped[k] = Array.isArray(v) ? v[0] : v;
+      });
       setErrors(mapped);
+      // If error is on step-1 fields, go back
+      const step1Fields = ['first_name', 'last_name', 'username', 'email'];
+      if (step1Fields.some(f => mapped[f])) setStep(1);
     } finally {
       setLoading(false);
     }
   };
 
-  // Reusable field component
-  const Field = ({ name, label, type = 'text', placeholder, required = false }) => (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <label className="form-label">
-        {label}{required && <span style={{ color: 'var(--amz-red)', marginLeft: 2 }}>*</span>}
-      </label>
-      <input
-        className="form-control"
-        type={type}
-        placeholder={placeholder}
-        value={form[name]}
-        onChange={e => set(name, e.target.value)}
-        style={{ borderColor: errors[name] ? '#dc3545' : undefined }}
-        autoComplete={type === 'email' ? 'email' : undefined}
-      />
-      {errors[name] && <div className="form-error">{errors[name]}</div>}
-    </div>
-  );
+  const PwdStrength = ({ pwd }) => {
+    if (!pwd) return null;
+    const score = [pwd.length >= 8, /[A-Z]/.test(pwd), /[0-9]/.test(pwd), /[^A-Za-z0-9]/.test(pwd)]
+      .filter(Boolean).length;
+    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+    const colors = ['', '#b12704', '#e47911', '#007185', '#007600'];
+    return (
+      <div style={{ marginTop: 6 }}>
+        <div style={{ display: 'flex', gap: 3, marginBottom: 3 }}>
+          {[1,2,3,4].map(i => (
+            <div key={i} style={{
+              flex: 1, height: 4, borderRadius: 2,
+              background: i <= score ? colors[score] : '#e0e0e0',
+              transition: 'background .2s',
+            }} />
+          ))}
+        </div>
+        <span style={{ fontSize: '.7rem', color: colors[score], fontWeight: 600 }}>
+          {labels[score]}
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <div className="page-wrapper" style={{
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'flex-start',
-      padding: '32px 16px 48px', minHeight: '100vh',
-      background: 'var(--bg-body)',
-    }}>
+    <div style={styles.page}>
       {/* Logo */}
-      <Link to="/" style={{ textDecoration: 'none', marginBottom: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <i className="bi bi-phone-fill" style={{ color: 'var(--amz-orange)', fontSize: '1.6rem' }} />
-          <span style={{
-            fontFamily: 'var(--font-display)', fontWeight: 900,
-            fontSize: '1.55rem', color: 'var(--text-primary)', letterSpacing: '-.5px'
-          }}>
+      <Link to="/" style={{ textDecoration: 'none', marginBottom: 24 }}>
+        <div style={styles.logo}>
+          <i className="bi bi-phone-fill" style={{ color: 'var(--amz-orange)', fontSize: '1.7rem' }} />
+          <span style={styles.logoText}>
             Amazon<span style={{ color: 'var(--amz-orange)' }}>KE</span>
           </span>
         </div>
       </Link>
 
-      {/* Registration box */}
-      <div style={{
-        width: '100%', maxWidth: 430,
-        background: '#fff', border: '1px solid #d5d9d9',
-        borderRadius: 'var(--radius-md)', padding: '24px 28px',
-        boxShadow: '0 2px 8px rgba(0,0,0,.06)',
-      }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 18 }}>Create account</h1>
+      {/* Card */}
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <h1 style={styles.cardTitle}>Create account</h1>
+          {/* Step indicator */}
+          <div style={styles.stepIndicator}>
+            {[1, 2].map(s => (
+              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{
+                  ...styles.stepDot,
+                  background: step >= s ? 'var(--amz-orange)' : '#e0e0e0',
+                  color: step >= s ? '#111' : '#999',
+                  fontWeight: step >= s ? 800 : 500,
+                }}>
+                  {step > s ? <i className="bi bi-check" style={{ fontSize: '.75rem' }} /> : s}
+                </div>
+                <span style={{ fontSize: '.72rem', color: step === s ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: step === s ? 700 : 400 }}>
+                  {s === 1 ? 'Your info' : 'Security'}
+                </span>
+                {s < 2 && <div style={{ width: 24, height: 1, background: step > s ? 'var(--amz-orange)' : '#e0e0e0', margin: '0 4px' }} />}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* General error */}
-        {errors.non_field_errors && (
-          <div className="alert alert-error" style={{ marginBottom: 14 }}>
+        {(errors.non_field_errors || errors.detail) && (
+          <div className="alert alert-error">
             <i className="bi bi-exclamation-triangle-fill" />
-            {errors.non_field_errors}
+            {errors.non_field_errors || errors.detail}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* ── STEP 1: Personal info ─────────────────── */}
+        {step === 1 && (
+          <form onSubmit={handleNext} style={styles.form}>
+            {/* Name row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <FieldGroup label="First name" required error={errors.first_name}>
+                <input
+                  className="form-control"
+                  type="text"
+                  value={form.first_name}
+                  onChange={e => set('first_name', e.target.value)}
+                  placeholder="John"
+                  autoFocus
+                  style={{ borderColor: errors.first_name ? '#dc3545' : undefined }}
+                />
+              </FieldGroup>
+              <FieldGroup label="Last name" required error={errors.last_name}>
+                <input
+                  className="form-control"
+                  type="text"
+                  value={form.last_name}
+                  onChange={e => set('last_name', e.target.value)}
+                  placeholder="Kamau"
+                  style={{ borderColor: errors.last_name ? '#dc3545' : undefined }}
+                />
+              </FieldGroup>
+            </div>
 
-          {/* Name row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field name="first_name" label="First name" placeholder="John" required />
-            <Field name="last_name"  label="Last name"  placeholder="Kamau" />
-          </div>
-
-          <Field name="username" label="Username"     placeholder="johnkamau" required />
-          <Field name="email"    label="Email address" type="email" placeholder="john@example.com" required />
-          <Field name="phone"    label="Phone number"  placeholder="0712 345 678" />
-
-          {/* Password */}
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">
-              Password <span style={{ color: 'var(--amz-red)' }}>*</span>
-            </label>
-            <div style={{ position: 'relative' }}>
+            <FieldGroup label="Username" required error={errors.username}
+              hint="This is how you'll appear on Amazon Kenya">
               <input
                 className="form-control"
-                type={showPwd ? 'text' : 'password'}
-                value={form.password}
-                onChange={e => set('password', e.target.value)}
-                placeholder="At least 8 characters"
-                autoComplete="new-password"
-                style={{ paddingRight: 40, borderColor: errors.password ? '#dc3545' : undefined }}
+                type="text"
+                value={form.username}
+                onChange={e => set('username', e.target.value)}
+                placeholder="johnkamau"
+                autoComplete="username"
+                style={{ borderColor: errors.username ? '#dc3545' : undefined }}
               />
-              <button
-                type="button"
-                onClick={() => setShowPwd(v => !v)}
-                style={{
-                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', color: '#888', padding: 4,
-                }}
-                aria-label={showPwd ? 'Hide password' : 'Show password'}
-              >
-                <i className={`bi ${showPwd ? 'bi-eye-slash' : 'bi-eye'}`} />
-              </button>
-            </div>
-            {errors.password && <div className="form-error">{errors.password}</div>}
-          </div>
+            </FieldGroup>
 
-          {/* Confirm password */}
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">
-              Confirm password <span style={{ color: 'var(--amz-red)' }}>*</span>
-            </label>
-            <div style={{ position: 'relative' }}>
+            <FieldGroup label="Email address" required error={errors.email}>
               <input
                 className="form-control"
-                type={showConfirm ? 'text' : 'password'}
-                value={form.confirm_password}
-                onChange={e => set('confirm_password', e.target.value)}
-                placeholder="Re-enter password"
-                autoComplete="new-password"
-                style={{ paddingRight: 40, borderColor: errors.confirm_password ? '#dc3545' : undefined }}
+                type="email"
+                value={form.email}
+                onChange={e => set('email', e.target.value)}
+                placeholder="john@example.com"
+                autoComplete="email"
+                style={{ borderColor: errors.email ? '#dc3545' : undefined }}
               />
+            </FieldGroup>
+
+            <FieldGroup label="Phone number" error={errors.phone} hint="Optional – for order updates via SMS">
+              <div style={{ position: 'relative' }}>
+                <span style={styles.phonePrefix}>+254</span>
+                <input
+                  className="form-control"
+                  type="tel"
+                  value={form.phone}
+                  onChange={e => set('phone', e.target.value)}
+                  placeholder="712 345 678"
+                  style={{ paddingLeft: 48, borderColor: errors.phone ? '#dc3545' : undefined }}
+                />
+              </div>
+            </FieldGroup>
+
+            <button type="submit" style={styles.submitBtn}>
+              Continue <i className="bi bi-arrow-right" style={{ marginLeft: 6 }} />
+            </button>
+          </form>
+        )}
+
+        {/* ── STEP 2: Password ──────────────────────── */}
+        {step === 2 && (
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <FieldGroup label="Password" required error={errors.password}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="form-control"
+                  type={showPwd ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={e => set('password', e.target.value)}
+                  placeholder="At least 8 characters"
+                  autoFocus
+                  autoComplete="new-password"
+                  style={{ paddingRight: 42, borderColor: errors.password ? '#dc3545' : undefined }}
+                />
+                <button type="button" onClick={() => setShowPwd(v => !v)} style={styles.eyeBtn}
+                  aria-label={showPwd ? 'Hide' : 'Show'}>
+                  <i className={`bi ${showPwd ? 'bi-eye-slash' : 'bi-eye'}`} />
+                </button>
+              </div>
+              <PwdStrength pwd={form.password} />
+            </FieldGroup>
+
+            <FieldGroup label="Re-enter password" required error={errors.password2}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="form-control"
+                  type={showConfirm ? 'text' : 'password'}
+                  value={form.password2}
+                  onChange={e => set('password2', e.target.value)}
+                  placeholder="Repeat your password"
+                  autoComplete="new-password"
+                  style={{ paddingRight: 42, borderColor: errors.password2 ? '#dc3545' : undefined }}
+                />
+                <button type="button" onClick={() => setShowConfirm(v => !v)} style={styles.eyeBtn}
+                  aria-label={showConfirm ? 'Hide' : 'Show'}>
+                  <i className={`bi ${showConfirm ? 'bi-eye-slash' : 'bi-eye'}`} />
+                </button>
+              </div>
+            </FieldGroup>
+
+            <p style={styles.terms}>
+              By creating an account you agree to Amazon Kenya's{' '}
+              <Link to="/terms" style={styles.inlineLink}>Terms of Service</Link> and{' '}
+              <Link to="/privacy" style={styles.inlineLink}>Privacy Policy</Link>.
+            </p>
+
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
-                onClick={() => setShowConfirm(v => !v)}
-                style={{
-                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', color: '#888', padding: 4,
-                }}
-                aria-label={showConfirm ? 'Hide' : 'Show'}
+                onClick={() => setStep(1)}
+                style={{ ...styles.backBtn }}
               >
-                <i className={`bi ${showConfirm ? 'bi-eye-slash' : 'bi-eye'}`} />
+                <i className="bi bi-arrow-left" style={{ marginRight: 4 }} /> Back
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  ...styles.submitBtn,
+                  flex: 1,
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {loading
+                  ? <><i className="bi bi-hourglass-split" style={{ marginRight: 6 }} />Creating account…</>
+                  : <><i className="bi bi-person-check" style={{ marginRight: 6 }} />Create account</>
+                }
               </button>
             </div>
-            {errors.confirm_password && <div className="form-error">{errors.confirm_password}</div>}
-          </div>
-
-          {/* Terms notice */}
-          <p style={{ fontSize: '.72rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: '4px 0' }}>
-            By creating an account, you agree to Amazon Kenya's{' '}
-            <Link to="/terms" style={{ color: 'var(--amz-link)' }}>Terms of Service</Link> and{' '}
-            <Link to="/privacy" style={{ color: 'var(--amz-link)' }}>Privacy Policy</Link>.
-          </p>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-amz-orange"
-            style={{ width: '100%', padding: '10px 16px', borderRadius: 4, fontSize: '.95rem', fontWeight: 700 }}
-          >
-            {loading
-              ? <><i className="bi bi-hourglass-split" style={{ marginRight: 6 }} />Creating account…</>
-              : 'Create your Amazon Kenya account'
-            }
-          </button>
-        </form>
+          </form>
+        )}
       </div>
 
       {/* Sign in link */}
-      <div style={{
-        width: '100%', maxWidth: 430, marginTop: 16,
-        background: '#fff', border: '1px solid #d5d9d9',
-        borderRadius: 'var(--radius-md)', padding: '14px 20px',
-        textAlign: 'center',
-      }}>
-        <span style={{ fontSize: '.88rem' }}>Already have an account? </span>
+      <div style={styles.signInBox}>
+        <span style={{ fontSize: '.88rem', color: 'var(--text-secondary)' }}>
+          Already have an account?{' '}
+        </span>
         <Link
           to="/login"
           state={{ from: location.state?.from }}
-          style={{ color: 'var(--amz-teal)', fontWeight: 800, fontSize: '.88rem' }}
+          style={{ color: 'var(--amz-link)', fontWeight: 700, fontSize: '.88rem' }}
         >
-          Sign in
+          Sign in →
         </Link>
       </div>
 
-      {/* Footer links */}
-      <div style={{ marginTop: 24, textAlign: 'center' }}>
-        <div style={{ display: 'flex', gap: 0, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {['Help', 'Terms', 'Privacy', 'Cookie Notice'].map((label, i, arr) => (
-            <span key={label} style={{ display: 'flex', alignItems: 'center' }}>
-              <a href={`/${label.toLowerCase().replace(' ', '-')}`}
-                style={{ fontSize: '.72rem', color: 'var(--amz-link)', padding: '0 8px' }}>
-                {label}
-              </a>
-              {i < arr.length - 1 && <span style={{ color: '#ccc', fontSize: '.7rem' }}>|</span>}
-            </span>
-          ))}
-        </div>
-        <p style={{ fontSize: '.7rem', color: 'var(--text-muted)', marginTop: 8 }}>
-          © {new Date().getFullYear()} Amazon Kenya. All rights reserved.
-        </p>
-      </div>
+      <FooterLinks />
     </div>
   );
 }
+
+/* ── Reusable field wrapper ───────────────────────────────── */
+function FieldGroup({ label, required, error, hint, children }) {
+  return (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <label className="form-label">
+        {label}
+        {required && <span style={{ color: 'var(--amz-red)', marginLeft: 2 }}>*</span>}
+      </label>
+      {children}
+      {hint && !error && (
+        <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', marginTop: 3 }}>{hint}</div>
+      )}
+      {error && <div className="form-error">{error}</div>}
+    </div>
+  );
+}
+
+function FooterLinks() {
+  const links = ['Help', 'Terms', 'Privacy', 'Cookie Notice'];
+  return (
+    <div style={{ marginTop: 28, textAlign: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
+        {links.map((label, i) => (
+          <span key={label} style={{ display: 'flex', alignItems: 'center' }}>
+            <a
+              href={`/${label.toLowerCase().replace(' ', '-')}`}
+              style={{ fontSize: '.72rem', color: 'var(--amz-link)', padding: '0 8px' }}
+            >
+              {label}
+            </a>
+            {i < links.length - 1 && <span style={{ color: '#ccc', fontSize: '.7rem' }}>|</span>}
+          </span>
+        ))}
+      </div>
+      <p style={{ fontSize: '.7rem', color: 'var(--text-muted)', marginTop: 8 }}>
+        © {new Date().getFullYear()} Amazon Kenya. All rights reserved.
+      </p>
+    </div>
+  );
+}
+
+const styles = {
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    padding: 'calc(var(--nav-top-h) + var(--nav-bottom-h) + 28px) 16px 48px',
+    minHeight: '100vh',
+    background: 'var(--bg-body)',
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 7,
+  },
+  logoText: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 900,
+    fontSize: '1.7rem',
+    color: 'var(--text-primary)',
+    letterSpacing: '-.5px',
+  },
+  card: {
+    width: '100%',
+    maxWidth: 420,
+    background: '#fff',
+    border: '1px solid #d5d9d9',
+    borderRadius: 'var(--radius-md)',
+    padding: '26px 30px',
+    boxShadow: '0 2px 12px rgba(0,0,0,.07)',
+  },
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  cardTitle: {
+    fontSize: '1.3rem',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+    margin: 0,
+  },
+  stepIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  stepDot: {
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '.72rem',
+    transition: 'background .2s',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14,
+  },
+  phonePrefix: {
+    position: 'absolute',
+    left: 10,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    fontSize: '.82rem',
+    color: 'var(--text-muted)',
+    pointerEvents: 'none',
+    fontWeight: 600,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: 10,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#888',
+    padding: 4,
+    fontSize: '.95rem',
+  },
+  submitBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    padding: '10px 16px',
+    background: 'linear-gradient(to bottom,#ffd76e,#f0a800)',
+    border: '1px solid #c68a00',
+    borderRadius: 4,
+    fontSize: '.95rem',
+    fontWeight: 700,
+    color: '#111',
+    cursor: 'pointer',
+    transition: 'filter .15s',
+  },
+  backBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '10px 16px',
+    background: 'linear-gradient(to bottom,#f5f5f5,#e8e8e8)',
+    border: '1px solid #aaa',
+    borderRadius: 4,
+    fontSize: '.9rem',
+    fontWeight: 600,
+    color: '#111',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+  terms: {
+    fontSize: '.72rem',
+    color: 'var(--text-muted)',
+    lineHeight: 1.6,
+    margin: '2px 0',
+  },
+  inlineLink: {
+    color: 'var(--amz-link)',
+  },
+  signInBox: {
+    width: '100%',
+    maxWidth: 420,
+    marginTop: 14,
+    background: '#fff',
+    border: '1px solid #d5d9d9',
+    borderRadius: 'var(--radius-md)',
+    padding: '14px 20px',
+    textAlign: 'center',
+  },
+};
