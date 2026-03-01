@@ -9,7 +9,7 @@ function AuthLogo() {
   return (
     <Link to="/" className="auth-logo">
       <i className="bi bi-phone-fill auth-logo-icon" />
-      PhonePlace Kenya
+      Amazon Kenya
     </Link>
   );
 }
